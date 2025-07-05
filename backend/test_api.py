@@ -4,7 +4,7 @@ import os
 
 # --- CONFIGURATION ---
 # The full URL to your running FastAPI endpoint
-API_URL = "http://127.0.0.1:8000/diagnose"
+API_URL = "http://192.168.187.245:8000/diagnose"
 # The path to an image you want to test
 IMAGE_PATH = "./early.JPG" # <--- CHANGE THIS
 

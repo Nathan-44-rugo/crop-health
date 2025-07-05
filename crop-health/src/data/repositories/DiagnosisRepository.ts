@@ -1,30 +1,45 @@
+// src/data/repositories/DiagnosisRepository.ts
+
+import * as mime from 'react-native-mime-types';
 import { DiagnosisRepository } from '../../domain/repositories/DiagnosisRepository';
 import { DiagnosisResult } from '../../domain/entities/DiagnosisResult';
-import axios from 'axios';
+import { BACKEND_URL } from '../../../config';
 
 export class DiagnosisRepositoryImpl implements DiagnosisRepository {
-    private api = process.env.BACKEND_URL;
+  private api = BACKEND_URL;
 
-    async diagnose(imageUri: string): Promise<DiagnosisResult> {
-        const formData = new FormData();
-        const fileName = imageUri.split('/').pop() || 'leaf.jpg';
-        const fileType = fileName.split('.').pop();
+  async diagnose(imageUri: string): Promise<DiagnosisResult> {
+    const fileName = imageUri.split('/').pop()!;
+    const type = mime.lookup(fileName) || 'image/jpeg';
 
-        formData.append('image', {
-        uri: imageUri,
-        type: `image/${fileType}`,
-        name: fileName,
-        } as any);
+    const formData = new FormData();
+    formData.append('file', {
+      uri: imageUri,
+      name: fileName,
+      type,
+    } as any);
 
-        const response = await axios.post(`${this.api}/diagnose`, formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-        });
+    // 🔁 Use fetch() instead of axios
+    const resp = await fetch(`${this.api}/diagnose`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+      },
+      body: formData,
+    });
 
-        return {
-        diseaseName: response.data.diseaseName,
-        treatmentAdvice: response.data.treatmentAdvice,
-        };
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw new Error(`HTTP ${resp.status}: ${text}`);
     }
+
+    const data = await resp.json();
+
+    return {
+      diseaseName: data.disease_class,
+      confidence: data.confidence,
+      treatmentAdvice: data.treatment_advice,
+      logId: data.log_id,
+    };
+  }
 }
